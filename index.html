@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国行政区划数据查询系统</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        h1, h2, h3 {
+            color: #1a73e8;
+        }
+        
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .selectors {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .selector-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-top: 5px;
+        }
+        
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #0d62c9;
+        }
+        
+        .result {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .code-search {
+            margin-top: 30px;
+        }
+        
+        .code-input {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .code-input input {
+            flex: 1;
+        }
+        
+        pre {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            margin-right: 5px;
+        }
+        
+        .tab.active {
+            background-color: #fff;
+            border-color: #ddd;
+            border-radius: 4px 4px 0 0;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #1a73e8;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .status {
+            margin-left: 10px;
+            font-size: 14px;
+        }
+        
+        .success {
+            color: #4CAF50;
+        }
+        
+        .error {
+            color: #f44336;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+</head>
+<body>
+    <h1>中国行政区划数据查询系统</h1>
+    
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" data-tab="query">区划查询</div>
+            <div class="tab" data-tab="code">代码查询</div>
+            <div class="tab" data-tab="data">数据预览</div>
+        </div>
+        
+        <div class="tab-content active" id="query-tab">
+            <h2>区划查询</h2>
+            <p>选择省、市、县/区、镇/街道进行查询</p>
+            
+            <div class="selectors">
+                <div class="selector-group">
+                    <label for="province">省/自治区/直辖市</label>
+                    <select id="province">
+                        <option value="">-- 请选择 --</option>
+                    </select>
+                </div>
+                
+                <div class="selector-group">
+                    <label for="city">市/自治州</label>
+                    <select id="city" disabled>
+                        <option value="">-- 请选择 --</option>
+                    </select>
+                </div>
+                
+                <div class="selector-group">
+                    <label for="county">县/区</label>
+                    <select id="county" disabled>
+                        <option value="">-- 请选择 --</option>
+                    </select>
+                </div>
+                
+                <div class="selector-group">
+                    <label for="town">镇/街道</label>
+                    <select id="town" disabled>
+                        <option value="">-- 请选择 --</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="result">
+                <h3>当前选择:</h3>
+                <p id="current-selection">未选择</p>
+                <p id="current-code">代码: -</p>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="code-tab">
+            <h2>代码查询</h2>
+            <p>输入行政区划代码进行查询</p>
+            
+            <div class="code-input">
+                <input type="text" id="code-input" placeholder="请输入6位或9位行政区划代码">
+                <button id="search-code">查询</button>
+            </div>
+            
+            <div class="result">
+                <h3>查询结果:</h3>
+                <p id="code-result">未查询</p>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="data-tab">
+            <h2>数据预览</h2>
+            <p>显示部分数据样例</p>
+            
+            <div id="data-loading">
+                <button id="load-data">加载数据</button>
+                <span id="load-status"></span>
+            </div>
+            
+            <div id="data-preview" style="display: none;">
+                <h3>数据统计</h3>
+                <div id="data-stats"></div>
+                
+                <h3>数据样例</h3>
+                <table id="data-table">
+                    <thead>
+                        <tr>
+                            <th>省/自治区/直辖市</th>
+                            <th>代码</th>
+                            <th>市/自治州</th>
+                            <th>代码</th>
+                            <th>县/区</th>
+                            <th>代码</th>
+                            <th>镇/街道</th>
+                            <th>代码</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script src="regionParser.js"></script>
+    <script src="sampleData.js"></script>
+    <script>
+        // 全局变量
+        let regionManager = new RegionManager();
+        let dataLoaded = false;
+        
+        // 初始化标签页
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // 移除所有标签页的active类
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // 添加当前标签页的active类
+                this.classList.add('active');
+                const tabId = this.getAttribute('data-tab') + '-tab';
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+        
+        // 加载数据
+        document.getElementById('load-data').addEventListener('click', async function() {
+            if (dataLoaded) return;
+            
+            const loadStatus = document.getElementById('load-status');
+            loadStatus.innerHTML = '<span class="loading"></span> 正在加载数据...';
+            
+            try {
+                // 尝试从JSON文件加载数据
+                try {
+                    console.log('尝试从JSON文件加载数据...');
+                    
+                    // 添加时间戳防止缓存
+                    const jsonUrl = 'region_data.json?t=' + new Date().getTime();
+                    console.log('加载URL:', jsonUrl);
+                    
+                    const response = await fetch(jsonUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误: ${response.status} - ${response.statusText}`);
+                    }
+                    
+                    console.log('JSON文件获取成功，正在解析...');
+                    const jsonData = await response.json();
+                    console.log('JSON解析成功，数据大小:', Object.keys(jsonData).length);
+                    
+                    regionManager.regionData = jsonData;
+                    loadStatus.innerHTML = '<span class="status success">✓ 从JSON文件加载数据成功</span>';
+                    dataLoaded = true;
+                    
+                    // 显示提示信息
+                    const noteElement = document.createElement('div');
+                    noteElement.style.marginTop = '10px';
+                    noteElement.style.padding = '10px';
+                    noteElement.style.backgroundColor = '#e8f5e9';
+                    noteElement.style.borderRadius = '4px';
+                    noteElement.innerHTML = `
+                        <p><strong>提示：</strong>如果无法加载JSON文件，可能是由于浏览器的安全限制。</p>
+                        <p>解决方法：</p>
+                        <ol>
+                            <li>使用本地Web服务器（如 http-server）</li>
+                            <li>或者使用下面的"使用示例数据"按钮</li>
+                        </ol>
+                    `;
+                    document.getElementById('data-loading').appendChild(noteElement);
+                } catch (jsonError) {
+                    console.error('从JSON文件加载失败:', jsonError);
+                    loadStatus.innerHTML = '<span class="status error">✗ JSON加载失败</span>';
+                    
+                    // 添加使用示例数据的按钮
+                    const useSampleButton = document.createElement('button');
+                    useSampleButton.textContent = '使用示例数据';
+                    useSampleButton.style.marginLeft = '10px';
+                    useSampleButton.addEventListener('click', function() {
+                        loadSampleData();
+                    });
+                    
+                    // 添加本地服务器提示
+                    const helpText = document.createElement('div');
+                    helpText.style.marginTop = '10px';
+                    helpText.style.padding = '10px';
+                    helpText.style.backgroundColor = '#fff3e0';
+                    helpText.style.borderRadius = '4px';
+                    helpText.innerHTML = `
+                        <p><strong>无法加载JSON文件</strong>: ${jsonError.message}</p>
+                        <p>这可能是由于浏览器的安全限制，无法通过file://协议直接加载本地JSON文件。</p>
+                        <p>解决方法：</p>
+                        <ol>
+                            <li>使用本地Web服务器，例如：
+                                <pre>npm install -g http-server
+http-server</pre>
+                                然后访问 <a href="http://localhost:8080" target="_blank">http://localhost:8080</a>
+                            </li>
+                            <li>或者点击上方的"使用示例数据"按钮使用内置的示例数据</li>
+                        </ol>
+                    `;
+                    
+                    document.getElementById('data-loading').appendChild(useSampleButton);
+                    document.getElementById('data-loading').appendChild(helpText);
+                    return;
+                }
+                
+                // 更新UI
+                updateProvinceSelect();
+                
+                // 更新数据预览
+                updateJsonDataPreview();
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                loadStatus.innerHTML = '<span class="status error">✗ 数据加载失败: ' + error.message + '</span>';
+            }
+        });
+        
+        // 加载示例数据
+        function loadSampleData() {
+            try {
+                const loadStatus = document.getElementById('load-status');
+                loadStatus.innerHTML = '<span class="loading"></span> 正在加载示例数据...';
+                
+                const parser = new RegionParser();
+                const parsedData = parser.parseFileContent(sampleData);
+                regionManager.regionData = parser.generateStructuredData();
+                
+                // 更新UI
+                updateProvinceSelect();
+                updateDataPreview(parsedData);
+                
+                loadStatus.innerHTML = '<span class="status success">✓ 示例数据加载成功</span>';
+                dataLoaded = true;
+            } catch (error) {
+                console.error('加载示例数据失败:', error);
+                loadStatus.innerHTML = '<span class="status error">✗ 示例数据加载失败: ' + error.message + '</span>';
+            }
+        }
+        
+        // 更新省份下拉框
+        function updateProvinceSelect() {
+            const provinceSelect = document.getElementById('province');
+            provinceSelect.innerHTML = '<option value="">-- 请选择 --</option>';
+            
+            const provinces = regionManager.getProvinces();
+            provinces.forEach(province => {
+                const option = document.createElement('option');
+                option.value = province.code.substring(0, 2);
+                option.textContent = province.name;
+                provinceSelect.appendChild(option);
+            });
+            
+            provinceSelect.disabled = false;
+        }
+        
+        // 省份选择变化时更新城市
+        document.getElementById('province').addEventListener('change', function() {
+            const provinceCode = this.value;
+            const citySelect = document.getElementById('city');
+            const countySelect = document.getElementById('county');
+            const townSelect = document.getElementById('town');
+            
+            // 重置城市、县/区和镇/街道选择
+            citySelect.innerHTML = '<option value="">-- 请选择 --</option>';
+            countySelect.innerHTML = '<option value="">-- 请选择 --</option>';
+            townSelect.innerHTML = '<option value="">-- 请选择 --</option>';
+            
+            countySelect.disabled = true;
+            townSelect.disabled = true;
+            
+            if (!provinceCode) {
+                citySelect.disabled = true;
+                updateSelection();
+                return;
+            }
+            
+            // 更新城市下拉框
+            const cities = regionManager.getCitiesByProvince(provinceCode);
+            cities.forEach(city => {
+                const option = document.createElement('option');
+                option.value = city.code.substring(2, 4);
+                option.textContent = city.name;
+                citySelect.appendChild(option);
+            });
+            
+            citySelect.disabled = false;
+            updateSelection();
+        });
+        
+        // 城市选择变化时更新县/区
+        document.getElementById('city').addEventListener('change', function() {
+            const provinceCode = document.getElementById('province').value;
+            const cityCode = this.value;
+            const countySelect = document.getElementById('county');
+            const townSelect = document.getElementById('town');
+            
+            // 重置县/区和镇/街道选择
+            countySelect.innerHTML = '<option value="">-- 请选择 --</option>';
+            townSelect.innerHTML = '<option value="">-- 请选择 --</option>';
+            
+            townSelect.disabled = true;
+            
+            if (!provinceCode || !cityCode) {
+                countySelect.disabled = true;
+                updateSelection();
+                return;
+            }
+            
+            // 更新县/区下拉框
+            const counties = regionManager.getCountiesByCity(provinceCode, cityCode);
+            counties.forEach(county => {
+                const option = document.createElement('option');
+                option.value = county.code.substring(4, 6);
+                option.textContent = county.name;
+                countySelect.appendChild(option);
+            });
+            
+            countySelect.disabled = false;
+            updateSelection();
+        });
+        
+        // 县/区选择变化时更新镇/街道
+        document.getElementById('county').addEventListener('change', function() {
+            const provinceCode = document.getElementById('province').value;
+            const cityCode = document.getElementById('city').value;
+            const countyCode = this.value;
+            const townSelect = document.getElementById('town');
+            
+            // 重置镇/街道选择
+            townSelect.innerHTML = '<option value="">-- 请选择 --</option>';
+            
+            if (!provinceCode || !cityCode || !countyCode) {
+                townSelect.disabled = true;
+                updateSelection();
+                return;
+            }
+            
+            // 更新镇/街道下拉框
+            const towns = regionManager.getTownsByCounty(provinceCode, cityCode, countyCode);
+            towns.forEach(town => {
+                const option = document.createElement('option');
+                option.value = town.code.substring(6);
+                option.textContent = town.name;
+                townSelect.appendChild(option);
+            });
+            
+            townSelect.disabled = false;
+            updateSelection();
+        });
+        
+        // 镇/街道选择变化时更新显示
+        document.getElementById('town').addEventListener('change', function() {
+            updateSelection();
+        });
+        
+        // 更新当前选择显示
+        function updateSelection() {
+            const provinceCode = document.getElementById('province').value;
+            const cityCode = document.getElementById('city').value;
+            const countyCode = document.getElementById('county').value;
+            const townCode = document.getElementById('town').value;
+            
+            if (!provinceCode) {
+                document.getElementById('current-selection').textContent = '未选择';
+                document.getElementById('current-code').textContent = '代码: -';
+                return;
+            }
+            
+            let code = provinceCode;
+            if (cityCode) {
+                code += cityCode;
+            } else {
+                code += '00';
+            }
+            
+            if (countyCode) {
+                code += countyCode;
+            } else {
+                code += '00';
+            }
+            
+            let displayCode = code;
+            
+            if (townCode) {
+                displayCode = code + townCode;
+            }
+            
+            const fullPath = regionManager.getFullRegionPath(displayCode);
+            document.getElementById('current-selection').textContent = fullPath || '未找到';
+            document.getElementById('current-code').textContent = `代码: ${displayCode}`;
+        }
+        
+        // 代码查询
+        document.getElementById('search-code').addEventListener('click', function() {
+            if (!dataLoaded) {
+                document.getElementById('code-result').textContent = '请先加载数据';
+                return;
+            }
+            
+            const code = document.getElementById('code-input').value.trim();
+            
+            if (!code) {
+                document.getElementById('code-result').textContent = '请输入行政区划代码';
+                return;
+            }
+            
+            if (!/^\d{6}(\d{3})?$/.test(code)) {
+                document.getElementById('code-result').textContent = '请输入有效的6位或9位行政区划代码';
+                return;
+            }
+            
+            const fullPath = regionManager.getFullRegionPath(code);
+            if (fullPath) {
+                document.getElementById('code-result').textContent = `${fullPath} (代码: ${code})`;
+            } else {
+                document.getElementById('code-result').textContent = `未找到代码 ${code} 对应的地区`;
+            }
+        });
+        
+        // 更新数据预览
+        function updateDataPreview(parsedData) {
+            // 显示数据预览区域
+            document.getElementById('data-preview').style.display = 'block';
+            
+            // 统计数据
+            const structure = regionManager.regionData;
+            const provinceCount = Object.keys(structure).length;
+            let cityCount = 0;
+            let countyCount = 0;
+            let townCount = 0;
+            
+            Object.values(structure).forEach(province => {
+                const cities = province.cities;
+                cityCount += Object.keys(cities).length;
+                
+                Object.values(cities).forEach(city => {
+                    const counties = city.counties;
+                    countyCount += Object.keys(counties).length;
+                    
+                    Object.values(counties).forEach(county => {
+                        townCount += Object.keys(county.towns).length;
+                    });
+                });
+            });
+            
+            // 更新统计信息
+            document.getElementById('data-stats').innerHTML = `
+                <p>共 ${parsedData.length} 条记录</p>
+                <p>包含 ${provinceCount} 个省/自治区/直辖市, ${cityCount} 个市/自治州, ${countyCount} 个县/区, ${townCount} 个镇/街道</p>
+            `;
+            
+            // 更新数据表格
+            const dataBody = document.getElementById('data-body');
+            dataBody.innerHTML = '';
+            
+            // 只显示前10条数据
+            const displayData = parsedData.slice(0, 10);
+            
+            displayData.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.province.name}</td>
+                    <td>${item.province.code}</td>
+                    <td>${item.city.name}</td>
+                    <td>${item.city.code}</td>
+                    <td>${item.county.name}</td>
+                    <td>${item.county.code}</td>
+                    <td>${item.town.name}</td>
+                    <td>${item.town.code}</td>
+                `;
+                dataBody.appendChild(row);
+            });
+        }
+        
+        // 更新JSON数据预览
+        function updateJsonDataPreview() {
+            // 显示数据预览区域
+            document.getElementById('data-preview').style.display = 'block';
+            
+            // 统计数据
+            const structure = regionManager.regionData;
+            const provinceCount = Object.keys(structure).length;
+            let cityCount = 0;
+            let countyCount = 0;
+            let townCount = 0;
+            
+            Object.values(structure).forEach(province => {
+                const cities = province.cities;
+                cityCount += Object.keys(cities).length;
+                
+                Object.values(cities).forEach(city => {
+                    const counties = city.counties;
+                    countyCount += Object.keys(counties).length;
+                    
+                    Object.values(counties).forEach(county => {
+                        townCount += Object.keys(county.towns).length;
+                    });
+                });
+            });
+            
+            // 更新统计信息
+            document.getElementById('data-stats').innerHTML = `
+                <p>从JSON文件加载的数据</p>
+                <p>包含 ${provinceCount} 个省/自治区/直辖市, ${cityCount} 个市/自治州, ${countyCount} 个县/区, ${townCount} 个镇/街道</p>
+            `;
+            
+            // 更新数据表格 - 从结构中提取一些示例数据
+            const dataBody = document.getElementById('data-body');
+            dataBody.innerHTML = '';
+            
+            // 提取前10个省的第一个市的第一个县的第一个镇作为示例
+            const displayData = [];
+            let count = 0;
+            
+            for (const provinceCode in structure) {
+                if (count >= 10) break;
+                
+                const province = structure[provinceCode];
+                const cities = province.cities;
+                
+                for (const cityCode in cities) {
+                    const city = cities[cityCode];
+                    const counties = city.counties;
+                    
+                    for (const countyCode in counties) {
+                        const county = counties[countyCode];
+                        const towns = county.towns;
+                        
+                        for (const townCode in towns) {
+                            const town = towns[townCode];
+                            
+                            displayData.push({
+                                province: { name: province.name, code: province.code },
+                                city: { name: city.name, code: city.code },
+                                county: { name: county.name, code: county.code },
+                                town: { name: town.name, code: town.code }
+                            });
+                            
+                            count++;
+                            break;
+                        }
+                        
+                        if (count >= 10) break;
+                        break;
+                    }
+                    
+                    if (count >= 10) break;
+                    break;
+                }
+            }
+            
+            // 显示提取的示例数据
+            displayData.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.province.name}</td>
+                    <td>${item.province.code}</td>
+                    <td>${item.city.name}</td>
+                    <td>${item.city.code}</td>
+                    <td>${item.county.name}</td>
+                    <td>${item.county.code}</td>
+                    <td>${item.town.name}</td>
+                    <td>${item.town.code}</td>
+                `;
+                dataBody.appendChild(row);
+            });
+        }
+        
+        // 自动加载数据
+        window.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('load-data').click();
+        });
+    </script>
+</body>
+</html> 

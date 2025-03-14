@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>区域联级选择器演示</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        h1, h2, h3 {
+            color: #1a73e8;
+        }
+        
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .selectors {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .selector-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-top: 5px;
+        }
+        
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background-color: #0d62c9;
+        }
+        
+        .result {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .code-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .code-input input {
+            flex: 1;
+        }
+        
+        pre {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #1a73e8;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .status {
+            margin-left: 10px;
+            font-size: 14px;
+        }
+        
+        .success {
+            color: #4CAF50;
+        }
+        
+        .error {
+            color: #f44336;
+        }
+        
+        .examples {
+            margin-top: 30px;
+        }
+        
+        .example-code {
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>区域联级选择器演示</h1>
+    
+    <div class="container">
+        <h2>基本用法</h2>
+        <p>省市县镇四级联动选择</p>
+        
+        <div class="selectors">
+            <div class="selector-group">
+                <label for="province">省/自治区/直辖市</label>
+                <select id="province">
+                    <option value="">-- 请选择 --</option>
+                </select>
+            </div>
+            
+            <div class="selector-group">
+                <label for="city">市/自治州</label>
+                <select id="city" disabled>
+                    <option value="">-- 请选择 --</option>
+                </select>
+            </div>
+            
+            <div class="selector-group">
+                <label for="county">县/区</label>
+                <select id="county" disabled>
+                    <option value="">-- 请选择 --</option>
+                </select>
+            </div>
+            
+            <div class="selector-group">
+                <label for="town">镇/街道</label>
+                <select id="town" disabled>
+                    <option value="">-- 请选择 --</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="result">
+            <h3>当前选择:</h3>
+            <p id="current-selection">未选择</p>
+            <p id="current-code">代码: -</p>
+        </div>
+        
+        <div class="code-input">
+            <input type="text" id="code-input" placeholder="请输入6位或9位行政区划代码">
+            <button id="set-by-code">设置选择器</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>加载数据</h2>
+        <div id="data-loading">
+            <button id="load-json">从JSON加载数据</button>
+            <button id="load-sample">使用示例数据</button>
+            <span id="load-status"></span>
+        </div>
+    </div>
+    
+    <div class="container examples">
+        <h2>使用示例</h2>
+        
+        <h3>1. 基本初始化</h3>
+        <div class="example-code">
+            <pre><code>// 创建联级选择器实例
+const cascader = new RegionCascader({
+    // 选择器DOM元素ID
+    selectors: {
+        province: 'province',
+        city: 'city',
+        county: 'county',
+        town: 'town'
+    },
+    // 选择变化时的回调函数
+    callbacks: {
+        onChange: function(data) {
+            console.log('选择变化:', data);
+            document.getElementById('current-selection').textContent = data.path || '未选择';
+            document.getElementById('current-code').textContent = '代码: ' + data.code;
+        }
+    }
+});</code></pre>
+        </div>
+        
+        <h3>2. 加载数据</h3>
+        <div class="example-code">
+            <pre><code>// 从JSON文件加载数据
+async function loadJsonData() {
+    try {
+        const response = await fetch('region_data.json');
+        const jsonData = await response.json();
+        cascader.setData(jsonData);
+        return true;
+    } catch (error) {
+        console.error('加载JSON数据失败:', error);
+        return false;
+    }
+}
+
+// 使用示例数据
+function loadSampleData() {
+    const parser = new RegionParser();
+    const parsedData = parser.parseFileContent(sampleData);
+    const structuredData = parser.generateStructuredData();
+    cascader.setData(structuredData);
+}</code></pre>
+        </div>
+        
+        <h3>3. 根据代码设置选择器</h3>
+        <div class="example-code">
+            <pre><code>// 根据代码设置选择器的值
+document.getElementById('set-by-code').addEventListener('click', function() {
+    const code = document.getElementById('code-input').value.trim();
+    if (code && /^\d{6}(\d{3})?$/.test(code)) {
+        cascader.setValueByCode(code);
+    } else {
+        alert('请输入有效的6位或9位行政区划代码');
+    }
+});</code></pre>
+        </div>
+        
+        <h3>4. 获取当前选择</h3>
+        <div class="example-code">
+            <pre><code>// 获取当前选择的代码
+const code = cascader.getSelectedCode();
+
+// 获取当前选择的路径
+const path = cascader.getSelectedPath();</code></pre>
+        </div>
+    </div>
+    
+    <script src="regionParser.js"></script>
+    <script src="sampleData.js"></script>
+    <script src="regionCascader.js"></script>
+    <script>
+        // 创建联级选择器实例
+        const cascader = new RegionCascader({
+            // 选择器DOM元素ID
+            selectors: {
+                province: 'province',
+                city: 'city',
+                county: 'county',
+                town: 'town'
+            },
+            // 选择变化时的回调函数
+            callbacks: {
+                onChange: function(data) {
+                    console.log('选择变化:', data);
+                    document.getElementById('current-selection').textContent = data.path || '未选择';
+                    document.getElementById('current-code').textContent = '代码: ' + data.code;
+                }
+            }
+        });
+        
+        // 从JSON文件加载数据
+        async function loadJsonData() {
+            const loadStatus = document.getElementById('load-status');
+            loadStatus.innerHTML = '<span class="loading"></span> 正在加载JSON数据...';
+            
+            try {
+                // 添加时间戳防止缓存
+                const jsonUrl = 'region_data.json?t=' + new Date().getTime();
+                const response = await fetch(jsonUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status} - ${response.statusText}`);
+                }
+                
+                const jsonData = await response.json();
+                cascader.setData(jsonData);
+                
+                loadStatus.innerHTML = '<span class="status success">✓ 从JSON文件加载数据成功</span>';
+                return true;
+            } catch (error) {
+                console.error('加载JSON数据失败:', error);
+                loadStatus.innerHTML = '<span class="status error">✗ JSON加载失败: ' + error.message + '</span>';
+                
+                // 添加本地服务器提示
+                const helpText = document.createElement('div');
+                helpText.style.marginTop = '10px';
+                helpText.style.padding = '10px';
+                helpText.style.backgroundColor = '#fff3e0';
+                helpText.style.borderRadius = '4px';
+                helpText.innerHTML = `
+                    <p>这可能是由于浏览器的安全限制，无法通过file://协议直接加载本地JSON文件。</p>
+                    <p>解决方法：使用本地Web服务器，例如：</p>
+                    <pre>npm install -g http-server
+http-server</pre>
+                    <p>然后访问 <a href="http://localhost:8080" target="_blank">http://localhost:8080</a></p>
+                `;
+                
+                document.getElementById('data-loading').appendChild(helpText);
+                return false;
+            }
+        }
+        
+        // 使用示例数据
+        function loadSampleData() {
+            const loadStatus = document.getElementById('load-status');
+            loadStatus.innerHTML = '<span class="loading"></span> 正在加载示例数据...';
+            
+            try {
+                const parser = new RegionParser();
+                const parsedData = parser.parseFileContent(sampleData);
+                const structuredData = parser.generateStructuredData();
+                cascader.setData(structuredData);
+                
+                loadStatus.innerHTML = '<span class="status success">✓ 示例数据加载成功</span>';
+                return true;
+            } catch (error) {
+                console.error('加载示例数据失败:', error);
+                loadStatus.innerHTML = '<span class="status error">✗ 示例数据加载失败: ' + error.message + '</span>';
+                return false;
+            }
+        }
+        
+        // 加载JSON数据按钮
+        document.getElementById('load-json').addEventListener('click', loadJsonData);
+        
+        // 加载示例数据按钮
+        document.getElementById('load-sample').addEventListener('click', loadSampleData);
+        
+        // 根据代码设置选择器的值
+        document.getElementById('set-by-code').addEventListener('click', function() {
+            const code = document.getElementById('code-input').value.trim();
+            if (code && /^\d{6}(\d{3})?$/.test(code)) {
+                cascader.setValueByCode(code);
+            } else {
+                alert('请输入有效的6位或9位行政区划代码');
+            }
+        });
+        
+        // 页面加载完成后自动加载示例数据
+        window.addEventListener('DOMContentLoaded', function() {
+            // 尝试加载JSON数据，如果失败则加载示例数据
+            loadJsonData().then(success => {
+                if (!success) {
+                    console.log('JSON加载失败，将使用示例数据');
+                    // 不自动加载示例数据，让用户手动选择
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
